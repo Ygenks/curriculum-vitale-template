@@ -1,9 +1,10 @@
 IMAGE=cv-image
 CONTAINER=cv-container
 
-.PHONY: all image build_image run attach
+.PHONY: image build_image run attach clean build
 
-all: image
+build:
+	docker exec -i ${CONTAINER} latexmk
 
 build_image:
 	docker build -t ${IMAGE} .
@@ -19,3 +20,6 @@ start:
 
 attach:
 	docker exec -it ${CONTAINER} /bin/bash
+
+clean:
+	docker exec -i ${CONTAINER} latexmk -C
