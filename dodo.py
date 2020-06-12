@@ -8,19 +8,17 @@ import pathlib
 from typing import Dict, List, Callable, Iterable
 
 import docker
-from doit.action import CmdAction
 from git import Repo
 from termcolor import colored
 
 
 PROJECT_PREFIX = "CV"
 VERSION_ENV_VARIABLE = "CV_VERSION"
-REPO_MAIN_DIR = os.path.dirname(os.path.realpath(__file__))
+REPO_MAIN_DIR = pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+BUILD_DIR_ROOT = REPO_MAIN_DIR / "build"
 
-BUILD_DIR_ROOT = f"{REPO_MAIN_DIR}/build"
-RESUME_OUTPUT_DIR = f"{BUILD_DIR_ROOT}/resumé"
-RESUME_SRC_DIR = f"{REPO_MAIN_DIR}/resumé"
-
+RESUME_SRC_DIR = REPO_MAIN_DIR / "resumé"
+RESUME_OUTPUT_DIR = BUILD_DIR_ROOT / "resumé"
 
 
 REPO = Repo(REPO_MAIN_DIR)
@@ -325,19 +323,58 @@ def task_resume():
             )
         )
 
+    def clean():
+        if RESUME_OUTPUT_DIR.exists():
+            print(RESUME_OUTPUT_DIR)
+            shutil.rmtree(RESUME_OUTPUT_DIR, ignore_errors=True)
+
     return {
         "actions": [create_output_dir, build_resume],
         "targets": [f"{RESUME_OUTPUT_DIR}/main.pdf"],
         "task_dep": [get_task_name(task_toollatex)],
+        "clean": [clean],
         "verbosity": 2
     }
 
 
-def task_clean_resume():
-    """Task for cleaning result of build_resume task."""
-    def delete_resume_dir():
-        shutil.rmtree(RESUME_OUTPUT_DIR, ignore_errors=True)
+def get_all_tasks() -> List[Callable]:
+    result = []
+    for name, value in globals().items():
+        if name.startswith("task_"):
+            result.append(value)
+
+    return result
+
+
+def delete_using_rglob(path: pathlib.Path, pattern: str) -> None:
+    for path in REPO_MAIN_DIR.rglob(pattern):
+        print(path)
+        if path.is_dir():
+            path.rmdir()
+        else:
+            path.unlink()
+
+
+def task_cleanup():
+    def clean():
+        for task in get_all_tasks():
+            if task is task_cleanup:
+                continue
+
+            attrs = task()
+            if "clean" in attrs:
+                assert callable(attrs["clean"][0])
+                attrs["clean"][0]()
+
+        if BUILD_DIR_ROOT.exists():
+            print(BUILD_DIR_ROOT)
+            BUILD_DIR_ROOT.rmdir()
+
+        delete_using_rglob(BUILD_DIR_ROOT, "*.pyc")
+        delete_using_rglob(BUILD_DIR_ROOT, "__pycache__")
+        delete_using_rglob(BUILD_DIR_ROOT, "*~")
 
     return {
-        "actions": [delete_resume_dir]
+        "actions": [clean],
+        "verbosity": 2
     }
