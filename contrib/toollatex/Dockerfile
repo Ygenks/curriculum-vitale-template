@@ -1,11 +1,15 @@
 FROM debian:10
 
 ARG HOST_USER_UID=1000
+ENV HOST_USER_UID=${HOST_USER_UID}
 ARG HOST_USER_GID=1000
+ENV HOST_USER_GID=${HOST_USER_GID}
 
-ENV CV_WORKDIR "/code"
-ENV CV_OUTPUT "/output"
-ENV DEBIAN_FRONTEND noninteractive
+ENV CV_WORKDIR="/work"
+ENV CV_CODE="/code"
+ENV CV_RESOURCES="/_/resources"
+ENV CV_OUTPUT="/output"
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install all TeX and LaTeX dependences
 RUN set -ex \
@@ -14,6 +18,8 @@ RUN set -ex \
     && apt-get install --yes --no-install-recommends \
         ca-certificates \
         git \
+        sudo \
+        mergerfs \
         inotify-tools \
         lmodern \
         make \
@@ -23,6 +29,8 @@ RUN set -ex \
         texlive-latex-extra \
         texlive-generic-extra \
         texlive-bibtex-extra \
+        texlive-xetex \
+        latexmk \
     && apt-get autoclean \
     && apt-get --purge --yes autoremove \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
@@ -38,11 +46,19 @@ RUN set -ex \
         --uid ${HOST_USER_UID} \
         --gid ${HOST_USER_GID} \
         notroot \
-    \
     && mkdir --parents ${CV_WORKDIR} \
-    && chown --recursive notroot:notroot ${CV_WORKDIR}
+    && chown --recursive notroot:notroot ${CV_WORKDIR} \
+    && mkdir --parents ${CV_CODE} \
+    && chown --recursive notroot:notroot ${CV_CODE} \
+    && mkdir --parents ${CV_RESOURCES} \
+    && chown --recursive notroot:notroot "/_" \
+    && mkdir --parents ${CV_OUTPUT} \
+    && chown --recursive notroot:notroot ${CV_OUTPUT}
 
-# Export the output data
-WORKDIR ${CV_WORKDIR}
-VOLUME [${CV_WORKDIR}]
-VOLUME [${CV_OUTPUT}]
+VOLUME ${CV_CODE}
+VOLUME ${CV_RESOURCES}
+VOLUME ${CV_OUTPUT}
+
+WORKDIR "/"
+ADD ./entrypoint.sh /
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]

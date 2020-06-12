@@ -5,7 +5,7 @@ import string
 import random
 import shutil
 import pathlib
-from typing import Dict, List, Callable, Iterable
+from typing import Dict, List, Callable, Iterable, Iterator
 
 import docker
 from git import Repo
@@ -15,6 +15,8 @@ from termcolor import colored
 PROJECT_PREFIX = "CV"
 VERSION_ENV_VARIABLE = "CV_VERSION"
 REPO_MAIN_DIR = pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+
+RESOURCES_DIR = REPO_MAIN_DIR / "resources"
 BUILD_DIR_ROOT = REPO_MAIN_DIR / "build"
 
 RESUME_SRC_DIR = REPO_MAIN_DIR / "resumé"
@@ -218,6 +220,19 @@ def analyze_and_print_image_building_status(
     return True
 
 
+def print_text(generator: Iterator[bytes]) -> None:
+    line = bytearray()
+    for obj in generator:
+        line.extend(obj)
+        if chr(line[-1]) == "\n":
+            print(line.decode(), end="")
+            line = bytearray()
+
+    # Print characters without \n symbol
+    if line:
+        print(line.decode(), end="\n")
+
+
 def run_command_in_container(
         full_image_name: str,
         command: str,
@@ -227,8 +242,8 @@ def run_command_in_container(
     container_info = DOCKER_CLIENT.create_container(
         full_image_name,
         command,
+        user=os.getuid() if "privileged" in host_config else None,
         tty=True,
-        user=os.getuid(),
         stdin_open=True,
         volumes=volumes,
         host_config=host_config
@@ -243,9 +258,10 @@ def run_command_in_container(
     try:
         DOCKER_CLIENT.start(container_id)
 
-        output_iter = DOCKER_CLIENT.attach(container_id, stream=True)
-        for line in output_iter:
-            print(line.decode(), end="")
+        generator = DOCKER_CLIENT.logs(container_id,
+                                       stream=True, follow=True,
+                                       stdout=True, stderr=True)
+        print_text(generator)
 
         exit_info = DOCKER_CLIENT.wait(container_id)
     finally:
@@ -303,21 +319,22 @@ def task_resume():
         create_dir_if_not_exists(RESUME_OUTPUT_DIR)
 
     def build_resume():
-        full_image_name = construct_full_image_name("toollatex")
-        command = (
-            "pdflatex"
-            " -halt-on-error"
-            " -output-directory /output"
-            " main.tex"
-        )
-
         return run_command_in_container(
-            full_image_name,
-            command,
-            volumes=["/code", "/output"],
+            construct_full_image_name("toollatex"),
+            command=[
+                "latexmk",
+                "-f",
+                "-xelatex",
+                "-shell-escape",
+                "-output-directory=/output",
+                "-jobname=main"
+            ],
+            volumes=["/code", "/_/resources", "/output"],
             host_config=DOCKER_CLIENT.create_host_config(
+                privileged=True,
                 binds={
                     RESUME_SRC_DIR: {"bind": "/code", "mode": "ro"},
+                    RESOURCES_DIR: {"bind": "/_/resources", "mode": "ro"},
                     RESUME_OUTPUT_DIR: {"bind": "/output", "mode": "rw"}
                 }
             )
