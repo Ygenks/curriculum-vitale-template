@@ -1,7 +1,11 @@
 #+TITLE: Curriculum Vitale
-All information required to analyze my professional skills
+A template for CV and own web site
 
-* Setup develop environment
-  #+begin_src shell
+* Prerequisites
+  pipenv
+
+* Installation
+  Install virtual environment:
+  #+BEGIN_SRC shell
     env PIPENV_VENV_IN_PROJECT=true pipenv --three
-  #+end_src
+  #+END_SRC
