@@ -1,0 +1,7 @@
+#+TITLE: Curriculum Vitale
+All information required to analyze my professional skills
+
+* Setup develop environment
+  #+begin_src shell
+    env PIPENV_VENV_IN_PROJECT=true pipenv --three
+  #+end_src
