@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+gitpython = "*"
+doit = "*"
+docker = "*"
+termcolor = "*"
+tqdm = "*"
+ipython = "*"
+        
+[dev-packages]
+pycodestyle = "*"
+pydocstyle = "*"
+pyflakes = "*"
+pylint = "*"
+eradicate = "*"
+mypy = "*"
+vulture = "*"
+pylama = "*"
+
+[requires]
+python_version = "3.8"
