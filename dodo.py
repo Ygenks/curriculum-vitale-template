@@ -5,7 +5,7 @@ import string
 import random
 import shutil
 import pathlib
-from typing import Dict, List, Callable, Iterable, Iterator
+from typing import Union, Dict, List, Callable, Iterable, Iterator
 
 import docker
 from git import Repo
@@ -235,7 +235,7 @@ def print_text(generator: Iterator[bytes]) -> None:
 
 def run_command_in_container(
         full_image_name: str,
-        command: str,
+        command: Union[List[str], str],
         volumes: List[str] = None,
         host_config: Dict = None
 ) -> bool:
@@ -324,18 +324,19 @@ def task_resume():
             command=[
                 "latexmk",
                 "-f",
+                "-pdfxe",
                 "-xelatex",
                 "-shell-escape",
-                "-output-directory=/output",
+                "-output-directory=output",
                 "-jobname=main"
             ],
-            volumes=["/code", "/_/resources", "/output"],
+            volumes=["/code", "/_/resources", "/_/output"],
             host_config=DOCKER_CLIENT.create_host_config(
                 privileged=True,
                 binds={
                     RESUME_SRC_DIR: {"bind": "/code", "mode": "ro"},
                     RESOURCES_DIR: {"bind": "/_/resources", "mode": "ro"},
-                    RESUME_OUTPUT_DIR: {"bind": "/output", "mode": "rw"}
+                    RESUME_OUTPUT_DIR: {"bind": "/_/output", "mode": "rw"}
                 }
             )
         )

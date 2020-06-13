@@ -1,22 +1,7 @@
-%%% Local Variables:
-%%% TeX-master: "master"
-%%% End:
-% !TEX encoding = UTF-8
-% !TEX program = pdflatex
-% !TEX spellcheck = en_GB
-
 \documentclass[english,a4paper]{europasscv}
-\usepackage[english]{babel}
 
 \usepackage{tagging}
-
-\usepackage[backend=biber,autolang=hyphen,sorting=none,style=numeric,maxbibnames=99,doi=false,isbn=false,maxcitenames=2]{biblatex}
 \usepackage{csquotes}
-\usepackage{europasscv-bibliography}
-
-\bibliography{europasscv_example}
-% in the bibliography, mark all occurrences in bold:
-\ecvbibhighlight{John}{Doe}{K.}
 
 \ecvname{John Doe}
 \ecvaddress{Minsk, Belarus}
@@ -118,11 +103,5 @@
   \ecvblueitem{Other skills}{Creating pieces of Art and visiting Modern Art galleries. Enjoy all sports particularly hockey, football and running. Love to travel and experience different cultures.}
 
   \ecvblueitem{Driving licence}{A, B}
-
-  \nocite{*}
-  \renewcommand{\section}[2]{\ecvsection{#2}}
-  \printbibtabular[title=Publications]
-
 \end{europasscv}
-
 \end{document}

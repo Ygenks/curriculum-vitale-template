@@ -8,7 +8,7 @@ ENV HOST_USER_GID=${HOST_USER_GID}
 ENV CV_WORKDIR="/work"
 ENV CV_CODE="/code"
 ENV CV_RESOURCES="/_/resources"
-ENV CV_OUTPUT="/output"
+ENV CV_OUTPUT="/_/output"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install all TeX and LaTeX dependences
@@ -30,10 +30,17 @@ RUN set -ex \
         texlive-generic-extra \
         texlive-bibtex-extra \
         texlive-xetex \
+        texlive-lang-chinese \
         latexmk \
+        tex-gyre \
+        fonts-texgyre \
+        fontconfig \
     && apt-get autoclean \
     && apt-get --purge --yes autoremove \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    \
+    # Update fonts cache
+    && fc-cache --force --verbose \
     \
     # After adding linux users into domain there is an issues with
     # huge lastlog (https://linux.die.net/man/8/lastlog) file in docker (see https://github.com/moby/moby/issues/5419).
@@ -61,4 +68,5 @@ VOLUME ${CV_OUTPUT}
 
 WORKDIR "/"
 ADD ./entrypoint.sh /
-ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+RUN chmod +x "/entrypoint.sh"
+ENTRYPOINT ["/entrypoint.sh"]
