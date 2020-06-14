@@ -34,6 +34,7 @@ RUN set -ex \
         latexmk \
         tex-gyre \
         fonts-texgyre \
+        fonts-dejavu \
         fontconfig \
     && apt-get autoclean \
     && apt-get --purge --yes autoremove \
