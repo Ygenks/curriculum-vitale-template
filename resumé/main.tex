@@ -6,6 +6,7 @@
 \usepackage{tagging}
 \usepackage{csquotes}
 
+
 \ecvname{John Doe}
 \ecvaddress{Minsk, Belarus}
 \ecvmobile{+353 (29) 555 35 35}
@@ -22,6 +23,9 @@
 
 \ecvpicture[scale=0.1]{resources/personal_photo.jpg}
 
+\ecvfootnote{} % Remove default footnote
+
+
 \begin{document}
   \begin{europasscv}
 
@@ -30,11 +34,7 @@
 
 
   \ecvsection{Work experience}
-  \ecvtitle{August 2018 -- Present}{EBAT}
-  \ecvitem{}{National Youth Council of Ireland\newline 3 Montague Street, Dublin 2, D02 V327, Ireland}
-  \ecvitem{}{Evaluation of European Commission youth training support measures for youth national agencies and young people}
-
-  \ecvtitle{February 2017 -- July 2019}{Synesis}
+  \ecvtitle{February 2017--July 2018}{Synesis}
   \ecvitem{}{European Commission, Youth Unit, DG Education and Culture \newline 200, Rue de la Loi, 1049 Brussels (Belgium)}
   \ecvitem{}{
   \begin{ecvitemize}
@@ -44,32 +44,24 @@
   \end{ecvitemize}
   }
 
+  \ecvtitle{August 2018--Present}{IRAT}
+  \ecvitem{}{National Youth Council of Ireland\newline 3 Montague Street, Dublin 2, D02 V327, Ireland}
+  \ecvitem{}{Evaluation of European Commission youth training support measures for youth national agencies and young people}
+
   \ecvsection{Education and training}
-  \ecvtitlelevel{2014--2018}{PhD - Thesis Title: ``Young People in the Construction of the Virtual University'', Empirical research on e-learning}{ISCED~6}
-  \ecvitem{}{Trinity College Dublin, The University of Dublin, Ireland
+  \ecvtitlelevel{2014--2018}{Bachelor of Computer Science and Programming Technologies}{ISCED~6}
+  \ecvitem{}{Belarusian State University of Informatics and Radioelectronics (BSUIR), Belarus}
+  \ecvitem{}{Diploma Thesis Title: <<C\# subset to Dart transpiler>>}
 
-  This is a citation to my PhD Thesis \cite{smith_phd}.}
-
-  \ecvtitle{1993--1997}{Bachelor of Computer Science and Programming Technologies}
-  \ecvitem{}{Trinity College Dublin, The , Ireland}
-  \ecvitem{}{
-    \begin{ecvitemize}
-	  \item sociology of risk
-      \item sociology of scientific knowledge / information society
-      \item anthropology
-      \item E-learning and Psychology
-      \item research methods
-    \end{ecvitemize}
-  }
 
   \ecvsection{Personal skills}
   \ecvmothertongue{Russian}
-  \ecvlanguageheader
+  \ecvlanguageheader{}
   \ecvlanguage{English}{A2}{A2}{A2}{A2}{A2}
   \ecvlastlanguage{German}{A2}{A2}{A2}{A2}{A2}
-  \ecvlanguagefooter
+  \ecvlanguagefooter{}
 
   \ecvsection{Certificates and trainings}
-  \ecvitem{Military card}{Without re-examination {\DejaSans 😼}}
+  \ecvitem{Military card}{Without re-examination \DejaSans{😼}}
 \end{europasscv}
 \end{document}
