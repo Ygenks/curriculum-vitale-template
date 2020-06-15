@@ -1,11 +1,28 @@
 #+TITLE: Curriculum Vitale
 A template for CV and own web site
 
-* Prerequisites
-  pipenv
+* Requirements
+  Install =pipenv=  and =docker= pacakges.
+  Then enable and start docker service.
 
-* Installation
-  Install virtual environment:
-  #+BEGIN_SRC shell
-    env PIPENV_VENV_IN_PROJECT=true pipenv --three
-  #+END_SRC
+* Install
+1. Create virtual environment in current folder using pipenv:
+#+BEGIN_SRC shell
+  env PIPENV_VENV_IN_PROJECT=true pipenv --three
+#+END_SRC
+
+2. Create container
+#+BEGIN_SRC shell
+  pipenv run doit toollatex
+#+END_SRC
+
+* Build
+1. Build resume in pipenv shell
+#+BEGIN_SRC shell
+  pipenv shell
+  doit resume
+#+END_SRC
+Or via =run= command
+#+BEGIN_SRC shell
+  pipenv run doit resume
+#+END_SRC
