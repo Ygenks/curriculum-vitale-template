@@ -70,4 +70,19 @@ VOLUME ${CV_OUTPUT}
 WORKDIR "/"
 ADD ./entrypoint.sh /
 RUN chmod +x "/entrypoint.sh"
+
+ADD ./europasscv_ru.def /usr/share/texlive/texmf-dist/tex/latex/europasscv/
+ENV EUROPASSCV_RUSSIAN_OPT_DECL "\\\\\\DeclareOption{russian}{%\n\
+  \\\\AtEndOfPackage{%\n\
+    \\\\input{europasscv_ru.def}%\n\
+  }%\n\
+}"
+RUN sed --in-place \
+        "/Set language/a ${EUROPASSCV_RUSSIAN_OPT_DECL}" \
+        /usr/share/texlive/texmf-dist/tex/latex/europasscv/europasscv.cls \
+    && sed --in-place \
+        "/europasscv_sv.def/a europasscv_ru.def" \
+        /usr/share/texlive/texmf-dist/ls-R \
+    && unset EUROPASSCV_RUSSIAN_OPT_DECL
+
 ENTRYPOINT ["/entrypoint.sh"]
