@@ -30,12 +30,13 @@ RUN set -ex \
         texlive-generic-extra \
         texlive-bibtex-extra \
         texlive-xetex \
-        texlive-lang-chinese \
+        texlive-lang-cyrillic \
         latexmk \
         tex-gyre \
         fonts-texgyre \
         fonts-dejavu \
         fontconfig \
+        texlive-fonts-extra \
     && apt-get autoclean \
     && apt-get --purge --yes autoremove \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
