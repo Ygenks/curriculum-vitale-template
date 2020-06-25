@@ -32,11 +32,8 @@ RUN set -ex \
         texlive-xetex \
         texlive-lang-cyrillic \
         latexmk \
-        tex-gyre \
-        fonts-texgyre \
-        fonts-dejavu \
         fontconfig \
-        texlive-fonts-extra \
+        fonts-lato \
     && apt-get autoclean \
     && apt-get --purge --yes autoremove \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
