@@ -23,7 +23,6 @@ RUN set -ex \
         inotify-tools \
         lmodern \
         make \
-        fonts-liberation \
         texlive \
         texlive-science \
         texlive-latex-extra \
@@ -32,8 +31,11 @@ RUN set -ex \
         texlive-xetex \
         texlive-lang-cyrillic \
         latexmk \
-        fontconfig \
+        fonts-liberation \
+        tex-gyre \
+        fonts-texgyre \
         fonts-lato \
+        fontconfig \
     && apt-get autoclean \
     && apt-get --purge --yes autoremove \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
