@@ -1,11 +1,9 @@
 import os
 import errno
 import json
-import string
-import random
 import shutil
 import pathlib
-from typing import Union, Dict, List, Callable, Iterable, Iterator
+from typing import Union, Dict, List, Callable, Iterable, Iterator, Any
 
 import docker
 from git import Repo
@@ -26,6 +24,13 @@ RESUME_OUTPUT_DIR = BUILD_DIR_ROOT / "resumé"
 REPO = Repo(REPO_MAIN_DIR)
 assert not REPO.bare
 
+DOCKER_CLIENT = docker.APIClient(base_url="unix://var/run/docker.sock")
+DOIT_CONFIG = {"default_tasks": ["build_all_images"]}
+
+# Don't modify this variables manually
+IMAGE_BUILD_TASKS = []
+IMAGE_CLEAN_TASKS = []
+
 
 def get_current_branch():
     try:
@@ -34,69 +39,15 @@ def get_current_branch():
         return REPO.head.ref.name
 
 
-CURRENT_BRANCH = get_current_branch()
-
-
 def get_version():
     head_commit_datetime = REPO.head.commit.authored_datetime
     head_commit_hash = REPO.head.commit.hexsha
 
     return "{0}-{1}-{2}".format(
-        CURRENT_BRANCH,
+        get_current_branch(),
         head_commit_datetime.strftime("%Y-%m-%d"),
         head_commit_hash[:7]
     )
-
-
-VERSION = get_version()
-
-
-def task_get_version():
-    def print_version():
-        print(VERSION)
-
-    return {
-        "actions": [print_version],
-        "verbosity": 2
-    }
-
-
-DOCKER_CLIENT = docker.APIClient(base_url="unix://var/run/docker.sock")
-DOIT_CONFIG = {"default_tasks": ["build_all_images"]}
-
-# Don't modify this variable manually
-IMAGE_BUILDERS = []
-
-
-class NotTaskObject(Exception):
-    pass
-
-
-def docker_image_builder(image_builder: Callable) -> Callable:
-    """Decorator for tasks for building docker images."""
-    IMAGE_BUILDERS.append(image_builder)
-
-    return image_builder
-
-
-def get_task_name(task_obj: Callable) -> str:
-    if hasattr(task_obj, "create_doit_tasks"):
-        return task_obj.__name__
-
-    task_name_prefix = "task_"
-    if task_obj.__name__.startswith(task_name_prefix):
-        return task_obj.__name__[len(task_name_prefix):]
-
-    raise NotTaskObject()
-
-
-def get_names_of_image_builders() -> List[str]:
-    names_of_image_builders = []
-    for image_builder in IMAGE_BUILDERS:
-        task_name = get_task_name(image_builder)
-        names_of_image_builders.append(task_name)
-
-    return names_of_image_builders
 
 
 def create_dir_if_not_exists(path_to_dir: str) -> bool:
@@ -110,15 +61,61 @@ def create_dir_if_not_exists(path_to_dir: str) -> bool:
         return False
 
 
+def is_dir_modified(relative_path_to_dir: str) -> bool:
+    path = os.path.normpath(relative_path_to_dir)
+    is_files_modified = len(REPO.index.diff(None, path)) != 0
+    is_new_files_added = any(untracked_file.startswith(path)
+                             for untracked_file in REPO.untracked_files)
+
+    return is_files_modified or is_new_files_added
+
+
+def get_all_tasks() -> List[Callable]:
+    result = []
+    for name, value in globals().items():
+        if name.startswith("task_"):
+            result.append(value)
+
+    return result
+
+
+def delete_using_rglob(path: pathlib.Path, pattern: str) -> None:
+    for path in REPO_MAIN_DIR.rglob(pattern):
+        print(path)
+        if path.is_dir():
+            path.rmdir()
+        else:
+            path.unlink()
+
+
+def get_task_name(task_obj: Union[Callable, str]) -> str:
+    if callable(task_obj):
+        task_obj = task_obj.__name__
+
+    return task_obj.replace("task_", "")
+
+
+def get_cli_handy_string(text: str) -> str:
+    return text.replace("_", "-")
+
+
+def get_cli_handy_task_name(task_func: Union[Callable, str]) -> str:
+    return get_cli_handy_string(get_task_name(task_func))
+
+
 def construct_full_image_name(image_name: str) -> str:
-    return "{}-{}:{}".format(PROJECT_PREFIX.lower(), image_name, VERSION)
+    return f"{PROJECT_PREFIX.lower()}-{image_name}"
+
+
+def construct_tagged_full_image_name(image_name: str) -> str:
+    return f"{construct_full_image_name(image_name)}:{get_version()}"
 
 
 def start_docker_image_building(
-        full_image_name: str,
-        path_to_context: str,
-        path_to_dockerfile_in_context: str,
-        build_args: Dict[str, str] = {}
+    full_image_name: str,
+    path_to_context: str,
+    path_to_dockerfile_in_context: str,
+    build_args: Dict[str, str] = {}
 ) -> Iterable[str]:
     info_txt = "Start building {} image".format(full_image_name)
     print(colored(info_txt, "blue", "on_white", attrs=["bold"]))
@@ -127,6 +124,7 @@ def start_docker_image_building(
         path="{}/{}/".format(REPO_MAIN_DIR, path_to_context),
         dockerfile=path_to_dockerfile_in_context,
         rm=True,
+        forcerm=True,
         buildargs={
             "HOST_USER_UID": str(os.getuid()),
             "HOST_USER_GID": str(os.getgid()),
@@ -154,20 +152,6 @@ def convert_bytes_to_human_readable(B: int) -> str:
         return "{0:.2f} GB".format(B / GB)
     elif TB <= B:
         return "{0:.2f} TB".format(B / TB)
-
-
-def generate_password(
-        size: int = 8,
-        chars: str = string.ascii_letters + string.digits
-) -> str:
-    """
-    Returns a string of random characters, useful in generating temporary
-    passwords for automated password resets.
-
-    size: default=8; override to provide smaller/larger passwords
-    chars: default=A-Za-z0-9; override to provide more/less diversity
-    """
-    return "".join(random.choice(chars) for i in range(size))
 
 
 def construct_loading_progress_string(cur_bytes: int, total_bytes: int) -> str:
@@ -271,56 +255,103 @@ def run_command_in_container(
 
 
 def create_image_builder(
-        image_name: str,
-        path_to_build_context: str,
-        path_to_dockerfile: str = "./Dockerfile",
-        build_args: Dict[str, str] = {}
+    image_name: str,
+    path_to_build_context: str,
+    path_to_dockerfile: str = "./Dockerfile",
+    build_args: Dict[str, str] = {}
 ) -> Callable:
     def build_image():
-        full_image_name = construct_full_image_name(image_name)
+        full_image_name = construct_tagged_full_image_name(image_name)
         output_iter = start_docker_image_building(
             full_image_name,
             path_to_build_context,
             path_to_dockerfile,
-            build_args={VERSION_ENV_VARIABLE: VERSION, **build_args}
+            build_args={VERSION_ENV_VARIABLE: get_version(), **build_args}
         )
         return analyze_and_print_image_building_status(output_iter)
 
     return build_image
 
 
-def is_dir_modified(relative_path_to_dir: str) -> bool:
-    path = os.path.normpath(relative_path_to_dir)
-    is_files_modified = len(REPO.index.diff(None, path)) != 0
-    is_new_files_added = any(untracked_file.startswith(path)
-                             for untracked_file in REPO.untracked_files)
+def clean_image(img_name: str) -> None:
+    full_img_name = construct_full_image_name(img_name)
 
-    return is_files_modified or is_new_files_added
+    containers = DOCKER_CLIENT.containers(
+        all=True,
+        filters={"name": full_img_name}
+    )
+    for container in containers:
+        DOCKER_CLIENT.remove_container(container.id, force=True)
+        print(f"{container.id} container removed")
+
+    images = DOCKER_CLIENT.images(name=full_img_name, all=True)
+    images_except_lasp = sorted(images, key=lambda el: el["Created"])[:-1]
+    for image in images_except_lasp:
+        DOCKER_CLIENT.remove_image(image["Id"], force=True)
+        print(f"{img_name} - {image['Id']} image removed")
 
 
-@docker_image_builder
-def task_toollatex():
-    return {
-        "actions": [create_image_builder("toollatex", "./contrib/toollatex")],
-        "verbosity": 2
-    }
+def create_image_build_task(
+    task_name: str,
+    image_name: str,
+    image_builder_args: Dict[str, Any]
+) -> Callable:
+    def task():
+        return {
+            "basename": task_name,
+            "actions": [
+                create_image_builder(image_name, **image_builder_args)
+            ],
+            "verbosity": 2
+        }
+
+    task.__doc__ = f"Build <{image_name}> Docker image"
+
+    return task
 
 
-def task_build_all_images():
-    return {
-        "actions": ["true"],
-        "task_dep": get_names_of_image_builders()
-    }
+def create_image_clean_task(task_name: str, image_name: str):
+    def task():
+        return {
+            "basename": task_name,
+            "actions": [lambda: clean_image(image_name)],
+            "verbosity": 2
+        }
+
+    task.__doc__ = ("Remove useless containers and images"
+                    f" of <{image_name}> Docker image")
+
+    return task
+
+
+def create_tasks_for_docker_image_management(
+    img_name: str,
+    image_builder_args: Dict[str, Any]
+):
+    task_name_major_part = get_cli_handy_string(img_name)
+
+    image_build_task = create_image_build_task(
+        task_name_major_part,
+        img_name,
+        image_builder_args
+    )
+    globals()[f"task_{task_name_major_part}"] = image_build_task
+    IMAGE_BUILD_TASKS.append(image_build_task)
+
+    clean_task_name = f"clean-{task_name_major_part}"
+    image_clean_task = create_image_clean_task(clean_task_name, img_name)
+    globals()[f"task_{clean_task_name}"] = image_clean_task
+    IMAGE_CLEAN_TASKS.append(image_clean_task)
 
 
 def task_resume():
-    """Task for building resume in pdf file."""
+    """Build resume as pdf file"""
     def create_output_dir():
         create_dir_if_not_exists(RESUME_OUTPUT_DIR)
 
     def build_resume():
         return run_command_in_container(
-            construct_full_image_name("toollatex"),
+            construct_tagged_full_image_name("toollatex"),
             command=[
                 "latexmk",
                 "-f",
@@ -349,31 +380,14 @@ def task_resume():
     return {
         "actions": [create_output_dir, build_resume],
         "targets": [f"{RESUME_OUTPUT_DIR}/main.pdf"],
-        "task_dep": [get_task_name(task_toollatex)],
+        "task_dep": ["toollatex"],
         "clean": [clean],
         "verbosity": 2
     }
 
 
-def get_all_tasks() -> List[Callable]:
-    result = []
-    for name, value in globals().items():
-        if name.startswith("task_"):
-            result.append(value)
-
-    return result
-
-
-def delete_using_rglob(path: pathlib.Path, pattern: str) -> None:
-    for path in REPO_MAIN_DIR.rglob(pattern):
-        print(path)
-        if path.is_dir():
-            path.rmdir()
-        else:
-            path.unlink()
-
-
 def task_cleanup():
+    """Remove useless temporary files"""
     def clean():
         for task in get_all_tasks():
             if task is task_cleanup:
@@ -396,3 +410,43 @@ def task_cleanup():
         "actions": [clean],
         "verbosity": 2
     }
+
+
+def task_get_version():
+    """Print project version"""
+    def print_version():
+        print(get_version())
+
+    return {
+        "basename": get_cli_handy_task_name(task_get_version),
+        "actions": [print_version],
+        "verbosity": 2
+    }
+
+
+def task_build_all_images():
+    """Build all required Docker images"""
+    return {
+        "basename": get_cli_handy_task_name(task_build_all_images),
+        "actions": [lambda: print("All images have just been built")],
+        "task_dep": [task()["basename"] for task in IMAGE_BUILD_TASKS],
+        "verbosity": 2
+    }
+
+
+def task_clean_images():
+    """Removing useless containers and images"""
+    return {
+
+        "basename": get_cli_handy_task_name(task_clean_images),
+        "actions": [lambda: print("All useless containers and images"
+                                  " have just been removed")],
+        "task_dep": [task()["basename"] for task in IMAGE_CLEAN_TASKS],
+        "verbosity": 2
+    }
+
+
+create_tasks_for_docker_image_management(
+    "toollatex",
+    {"path_to_build_context": "./contrib/toollatex"}
+)
