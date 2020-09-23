@@ -11,7 +11,12 @@ A template for CV and own web site
   env PIPENV_VENV_IN_PROJECT=true pipenv --three
 #+END_SRC
 
-2. Create container
+2. Install pythonic dependencies from lock file
+#+BEGIN_SRC shell
+  pipenv install
+#+END_SRC
+
+3. Create container
 #+BEGIN_SRC shell
   pipenv run doit toollatex
 #+END_SRC
