@@ -23,18 +23,7 @@ RUN set -ex \
         inotify-tools \
         lmodern \
         make \
-        texlive \
-        texlive-bibtex-extra \
-        texlive-fonts-extra \
-        texlive-fonts-recommended \
-        texlive-lang-cyrillic \
-        texlive-latex-base \
-        texlive-latex-extra \
-        texlive-latex-recommended \
-        texlive-plain-generic \
-        texlive-publishers \
-        texlive-science \
-        texlive-xetex \
+        texlive-full \
         latexmk \
         fonts-liberation \
         tex-gyre \
