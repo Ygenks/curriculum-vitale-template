@@ -24,15 +24,17 @@ RUN set -ex \
         lmodern \
         make \
         texlive \
-        texlive-science \
+        texlive-bibtex-extra \
+        texlive-fonts-extra \
+        texlive-fonts-recommended \
+        texlive-lang-cyrillic \
         texlive-latex-base \
+        texlive-latex-extra \
         texlive-latex-recommended \
         texlive-plain-generic \
         texlive-publishers \
-        texlive-latex-extra \
-        texlive-bibtex-extra \
+        texlive-science \
         texlive-xetex \
-        texlive-lang-cyrillic \
         latexmk \
         fonts-liberation \
         tex-gyre \
