@@ -1,4 +1,4 @@
-FROM debian:sid
+FROM debian:bullseye
 
 ARG HOST_USER_UID=1000
 ENV HOST_USER_UID=${HOST_USER_UID}
@@ -25,8 +25,11 @@ RUN set -ex \
         make \
         texlive \
         texlive-science \
+        texlive-latex-base \
+        texlive-latex-recommended \
+        texlive-plain-generic \
+        texlive-publishers \
         texlive-latex-extra \
-        texlive-generic-extra \
         texlive-bibtex-extra \
         texlive-xetex \
         texlive-lang-cyrillic \
@@ -47,7 +50,9 @@ RUN set -ex \
     # huge lastlog (https://linux.die.net/man/8/lastlog) file in docker (see https://github.com/moby/moby/issues/5419).
     # So key --no-log-init is mandatory
     && echo "Creating notroot user and group from host" \
-    && groupadd --gid ${HOST_USER_GID} notroot \
+    && if [ ! "$(cat /etc/group | grep \":${HOST_USER_GID}:\")" = "" ]; then \
+         groupadd --gid ${HOST_USER_GID} notroot; \
+       fi \
     && useradd \
         --no-log-init \
         --create-home \
@@ -55,13 +60,13 @@ RUN set -ex \
         --gid ${HOST_USER_GID} \
         notroot \
     && mkdir --parents ${CV_WORKDIR} \
-    && chown --recursive notroot:notroot ${CV_WORKDIR} \
+    && chown --recursive ${HOST_USER_UID}:${HOST_USER_GID} ${CV_WORKDIR} \
     && mkdir --parents ${CV_CODE} \
-    && chown --recursive notroot:notroot ${CV_CODE} \
+    && chown --recursive ${HOST_USER_UID}:${HOST_USER_GID} ${CV_CODE} \
     && mkdir --parents ${CV_RESOURCES} \
-    && chown --recursive notroot:notroot "/_" \
+    && chown --recursive ${HOST_USER_UID}:${HOST_USER_GID} "/_" \
     && mkdir --parents ${CV_OUTPUT} \
-    && chown --recursive notroot:notroot ${CV_OUTPUT}
+    && chown --recursive ${HOST_USER_UID}:${HOST_USER_GID} ${CV_OUTPUT}
 
 VOLUME ${CV_CODE}
 VOLUME ${CV_RESOURCES}
@@ -71,10 +76,10 @@ WORKDIR "/"
 ADD ./entrypoint.sh /
 RUN chmod +x "/entrypoint.sh"
 
-ADD ./europasscv_ru.def /usr/share/texlive/texmf-dist/tex/latex/europasscv/
+ADD ./europasscv_ru.def /usr/share/texlive/texmf-dist/tex/latex/europasscv/def/
 ENV EUROPASSCV_RUSSIAN_OPT_DECL "\\\\\\DeclareOption{russian}{%\n\
   \\\\AtEndOfPackage{%\n\
-    \\\\input{europasscv_ru.def}%\n\
+    \\\\input{def/europasscv_ru.def}%\n\
   }%\n\
 }"
 RUN sed --in-place \
